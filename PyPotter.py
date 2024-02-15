@@ -241,7 +241,7 @@ def CheckForPattern(wandTracks, exampleFrame):
         distance = math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
         distances.append(distance)
 
-        cv2.line(wand_path_frame, (x1, y1),(x2, y2), (255,255,255), thickness)
+        cv2.line(wand_path_frame, (int(x1), int(y1)),(int(x2), int(y2)), (255,255,255), thickness)
         prevTrack = track
 
     mostRecentDistances = distances[-NumDistancesToAverage:]
@@ -514,7 +514,7 @@ while True:
                     # Update which points are tracked
                     trackedPoints = good_new.copy().reshape(-1,1,2)
             
-                    # wandTracks = CheckForPattern(wandTracks, localFrameThresh)
+                    wandTracks = CheckForPattern(wandTracks, localFrameThresh)
             
                 else:
                     # No Points were tracked, check for a pattern and start searching for wands again
