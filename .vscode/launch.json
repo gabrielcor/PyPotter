@@ -4,6 +4,10 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     // argumentos
     // rtsp://admin:8001017170@192.168.1.151:554/h264Preview_01_main http://homeassistant.local:8123 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjMzIxMGI5NGM1NWE0YzJhODZkNjRmY2MxOWM1N2IzOCIsImlhdCI6MTcwNzg2NjgyMCwiZXhwIjoyMDIzMjI2ODIwfQ.SJl9rckoWr7V_gY9Yvdz8kEFMGMkYcCxMvAWaElfP58
+    // rtsp://admin:8001017170@192.168.1.151:554/h264Preview_01_sub http://homeassistant.local:8123 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjMzIxMGI5NGM1NWE0YzJhODZkNjRmY2MxOWM1N2IzOCIsImlhdCI6MTcwNzg2NjgyMCwiZXhwIjoyMDIzMjI2ODIwfQ.SJl9rckoWr7V_gY9Yvdz8kEFMGMkYcCxMvAWaElfP58
+
+
+    // python pypotter.py rtsp://admin:8001017170@192.168.1.151:554/h264Preview_01_sub http://homeassistant.local:8123 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjMzIxMGI5NGM1NWE0YzJhODZkNjRmY2MxOWM1N2IzOCIsImlhdCI6MTcwNzg2NjgyMCwiZXhwIjoyMDIzMjI2ODIwfQ.SJl9rckoWr7V_gY9Yvdz8kEFMGMkYcCxMvAWaElfP58   
     "version": "0.2.0",
     "configurations": [
         {
