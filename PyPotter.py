@@ -97,11 +97,9 @@ if (IsShowThreshold):
     cv2.namedWindow("Threshold")
     cv2.moveWindow("Threshold", 0, 480+30)
 
-if not IsDebugGC:
-
-    if (IsShowOutput):
-        cv2.namedWindow("Output")
-        cv2.moveWindow("Output", 640, 480+30)
+if (IsShowOutput):
+    cv2.namedWindow("Output")
+    cv2.moveWindow("Output", 640, 480+30)
 
 # Init Global Variables
 IsNewFrame = False
@@ -435,6 +433,8 @@ if not IsDebugGC:
 videoCapture = cv2.VideoCapture(videoSource)
 fgbg = cv2.createBackgroundSubtractorMOG2()
 thresholdValue = 240
+oldFrameThresh = None
+
 
 # Main Loop
 while True:
@@ -472,6 +472,7 @@ while True:
         frame_no_background = cv2.bitwise_and(frameCopy, frameCopy, mask = fgmask)
         IsNewFrameNoBackground = True
 
+        # Calculate Threshold
         if (IsShowBackgroundRemoved):
             frameNoBackgroundWithCounts = AddIterationsPerSecText(frame_no_background.copy(), noBackgroundCps.countsPerSec())
             cv2.imshow("BackgroundRemoved", frameNoBackgroundWithCounts)
@@ -484,6 +485,47 @@ while True:
             frameThreshWithCounts = AddIterationsPerSecText(frameThresh.copy(), thresholdCps.countsPerSec())
             cv2.imshow("Threshold", frameThreshWithCounts)
 
+        # Process frame
+        if True:
+            localFrameThresh = frameThresh.copy()
+
+            if (findNewWands):
+                # Identify Potential Wand Tips using GoodFeaturesToTrack
+                trackedPoints = cv2.goodFeaturesToTrack(localFrameThresh, 5, .01, 30)
+                if trackedPoints is not None:
+                    print("Found New Wands")
+                    findNewWands = False
+            else:
+                # calculate optical flow
+                nextPoints, statusArray, err = cv2.calcOpticalFlowPyrLK(oldFrameThresh, localFrameThresh, trackedPoints, None, **lk_params)
+            
+                # Select good points
+                good_new = nextPoints[statusArray==1]
+                good_old = trackedPoints[statusArray==1]
+
+                if (len(good_new) > 0):
+                    # draw the tracks
+                    for i,(new,old) in enumerate(zip(good_new,good_old)):
+                        a,b = new.ravel()
+                        c,d = old.ravel()
+            
+                        wandTracks.append([a, b])
+            
+                    # Update which points are tracked
+                    trackedPoints = good_new.copy().reshape(-1,1,2)
+            
+                    # wandTracks = CheckForPattern(wandTracks, localFrameThresh)
+            
+                else:
+                    # No Points were tracked, check for a pattern and start searching for wands again
+                    #wandTracks = CheckForPattern(wandTracks, localFrameThresh)
+                    print("No points tracked - reseting wand search.")
+                    wandTracks = []
+                    findNewWands = True
+            
+            # Store Previous Threshold Frame
+            oldFrameThresh = localFrameThresh
+            
 
     elif not ret:
         # If an error occurred, try initializing the video capture agai
