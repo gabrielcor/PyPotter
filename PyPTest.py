@@ -38,12 +38,16 @@ NumDistancesToAverage = int(round( 20 * (DesiredFps / DefaultFps)))
 
 
 IsDebugFps = True
-IsShowOriginal = True
+IsShowOriginal = False
+IsShowBackgroundRemoved = True
 
 # Create Windows
 if (IsShowOriginal):
     cv2.namedWindow("Original")
     cv2.moveWindow("Original", 0, 0)
+if (IsShowBackgroundRemoved):
+    cv2.namedWindow("BackgroundRemoved")
+    cv2.moveWindow("BackgroundRemoved", 640, 0)
 
 
 # Init Global Variables
@@ -306,10 +310,16 @@ outputFrameCount = 0
 InitClassificationAlgo()
 
 
-
-
 # Set OpenCV video capture source
 videoCapture = cv2.VideoCapture(videoSource)
+# BackgroundSubtractor
+# Default values: history=500, varThreshold=16, detectShadows=False
+bgHistory = 500
+bgThreshold = 500
+bgShadows = False
+fgbg = cv2.createBackgroundSubtractorMOG2(history=bgHistory, varThreshold=bgThreshold, detectShadows=bgShadows)
+
+
 thresholdValue = 240
 oldFrameThresh = None
 
@@ -324,19 +334,30 @@ while True:
         print("Frame error")
         videoCapture = cv2.VideoCapture(videoSource)
     else:
+
+        # Flip the frame so the spells look like what we expect, instead of the mirror image
+        # ONLY if you can't do it on the camera
+        # cv2.flip(localFrame, 1, localFrame) 
+
+        # SHOW ORIGINAL FRAME
         inputFrameCount = inputFrameCount + 1
-        
         # Print FPS Debug info every second
         if ((datetime.datetime.now() - timeLastPrintedFps).seconds >= 1 ):
             timeLastPrintedFps = datetime.datetime.now()
             print("FPS: %d/%d" %(inputFrameCount, outputFrameCount))
             inputFrameCount = 0
             outputFrameCount = 0
-
         # Update Windows
         if (IsShowOriginal):
             frameWithCounts = AddIterationsPerSecText(localFrame.copy(), originalCps.countsPerSec())
             cv2.imshow("Original", frameWithCounts)
+
+        # REMOVE BACKGROUND
+        fgmask = fgbg.apply(localFrame, learningRate=0.001)
+        frame_no_background = cv2.bitwise_and(localFrame, localFrame, mask = fgmask)
+        if (IsShowBackgroundRemoved):
+            frameNoBackgroundWithCounts = AddIterationsPerSecText(frame_no_background.copy(), noBackgroundCps.countsPerSec())
+            cv2.imshow("BackgroundRemoved", frameNoBackgroundWithCounts)
 
 
         # Check for ESC key, if pressed shut everything down
