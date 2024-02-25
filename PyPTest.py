@@ -39,7 +39,8 @@ NumDistancesToAverage = int(round( 20 * (DesiredFps / DefaultFps)))
 
 IsDebugFps = True
 IsShowOriginal = False
-IsShowBackgroundRemoved = True
+IsShowBackgroundRemoved = False
+IsShowThreshold = True
 
 # Create Windows
 if (IsShowOriginal):
@@ -48,6 +49,9 @@ if (IsShowOriginal):
 if (IsShowBackgroundRemoved):
     cv2.namedWindow("BackgroundRemoved")
     cv2.moveWindow("BackgroundRemoved", 640, 0)
+if (IsShowThreshold):
+    cv2.namedWindow("Threshold")
+    cv2.moveWindow("Threshold", 0, 480+30)
 
 
 # Init Global Variables
@@ -320,7 +324,7 @@ bgShadows = False
 fgbg = cv2.createBackgroundSubtractorMOG2(history=bgHistory, varThreshold=bgThreshold, detectShadows=bgShadows)
 
 
-thresholdValue = 240
+thresholdValue = 225
 oldFrameThresh = None
 
 
@@ -355,9 +359,17 @@ while True:
         # REMOVE BACKGROUND
         fgmask = fgbg.apply(localFrame, learningRate=0.001)
         frame_no_background = cv2.bitwise_and(localFrame, localFrame, mask = fgmask)
+
         if (IsShowBackgroundRemoved):
             frameNoBackgroundWithCounts = AddIterationsPerSecText(frame_no_background.copy(), noBackgroundCps.countsPerSec())
             cv2.imshow("BackgroundRemoved", frameNoBackgroundWithCounts)
+
+        # THRESHOLD
+        ret, frameThresh = cv2.threshold(frame_no_background, thresholdValue, 255, cv2.THRESH_BINARY);
+
+        if (IsShowThreshold):
+            frameThreshWithCounts = AddIterationsPerSecText(frameThresh.copy(), thresholdCps.countsPerSec())
+            cv2.imshow("Threshold", frameThreshWithCounts)
 
 
         # Check for ESC key, if pressed shut everything down
