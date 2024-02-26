@@ -1,3 +1,6 @@
+# TODO: 1-Try to get a smooth output from the wand tracking (maybe use threading to process the data)
+# 
+
 import sys
 import cv2
 from cv2 import *
@@ -44,6 +47,7 @@ IsShowBackgroundRemoved = False
 IsShowThreshold = False
 IsShowOutput = True
 IsProcessData = True
+calculateDistance = False
 
 # Create Windows
 if (IsShowOriginal):
@@ -183,29 +187,30 @@ def CheckForPattern(wandTracks, exampleFrame):
         cv2.line(wand_path_frame, (int(x1), int(y1)),(int(x2), int(y2)), (255,255,255), thickness)
         prevTrack = track
 
-    mostRecentDistances = distances[-NumDistancesToAverage:]
-    avgMostRecentDistances = mean(mostRecentDistances)
-    sumDistances = sum(distances)
+    if (calculateDistance):
+        mostRecentDistances = distances[-NumDistancesToAverage:]
+        avgMostRecentDistances = mean(mostRecentDistances)
+        sumDistances = sum(distances)
 
-    contours, hierarchy = cv2.findContours(wand_path_frame,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(wand_path_frame,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 
-    # Determine if wand stopped moving by looking at recent movement (avgMostRecentDistances), and check the length of distances to make sure the spell is reasonably long
-    if (avgMostRecentDistances < SpellEndMovement and len(distances) > MinSpellLength):
-        # Make sure wand path is valid and is over the defined minimum distance
-        if (len(contours) > 0) and sumDistances > MinSpellDistance:
-            cnt = contours[0]
-            x,y,w,h = cv2.boundingRect(cnt)
-            crop = wand_path_frame[y-10:y+h+10,x-30:x+w+30]
-            result = ClassifyImage(crop);
-            cv2.putText(wand_path_frame, result, (0,50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255))
+        # Determine if wand stopped moving by looking at recent movement (avgMostRecentDistances), and check the length of distances to make sure the spell is reasonably long
+        if (avgMostRecentDistances < SpellEndMovement and len(distances) > MinSpellLength):
+            # Make sure wand path is valid and is over the defined minimum distance
+            if (len(contours) > 0) and sumDistances > MinSpellDistance:
+                cnt = contours[0]
+                x,y,w,h = cv2.boundingRect(cnt)
+                crop = wand_path_frame[y-10:y+h+10,x-30:x+w+30]
+                result = ClassifyImage(crop);
+                cv2.putText(wand_path_frame, result, (0,50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255))
 
-            print("Result: ", result, " Most Recent avg: ", avgMostRecentDistances, " Length Distances: ", len(distances), " Sum Distances: ", sumDistances)
-            print("")
+                print("Result: ", result, " Most Recent avg: ", avgMostRecentDistances, " Length Distances: ", len(distances), " Sum Distances: ", sumDistances)
+                print("")
 
-            # PerformSpell(result)
-            LastSpell = result
-        find_new_wands = True
-        wandTracks.clear()
+                # PerformSpell(result)
+                LastSpell = result
+            find_new_wands = True
+            wandTracks.clear()
 
     if wand_path_frame is not None:
         if (IsShowOutput):
