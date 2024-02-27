@@ -49,7 +49,7 @@ IsTraining = False
 IsDebugFps = True
 IsShowOriginal = False
 IsShowBackgroundRemoved = False
-IsShowThreshold = False
+IsShowThreshold = True
 IsShowOutput = True
 IsProcessData = True
 calculateDistance = False
@@ -255,58 +255,60 @@ def RemoveBackground():
 
 def ProcessData():
     """
-    Thread for processing final frame
+    Thread for processing each frame searching for patterns
     """
     global frameThresh, IsNewFrameThreshold, findNewWands, wandTracks, outputFrameCount
 
     oldFrameThresh = None
     trackedPoints = None
     t = threading.currentThread()
-
+    fast = cv2.FastFeatureDetector_create()
     while getattr(t, "do_run", True):
         if (IsNewFrameThreshold):
             if (IsDebugFps):
                 outputFrameCount = outputFrameCount + 1
 
-            IsNewFrameThreshold = False
-            localFrameThresh = frameThresh.copy()
+            if True:
+                IsNewFrameThreshold = False
+                localFrameThresh = frameThresh.copy()
+                if (findNewWands):
+                    # Identify Potential Wand Tips using GoodFeaturesToTrack
+                    # trackedPoints = cv2.goodFeaturesToTrack(localFrameThresh, 5, .01, 30)
+                    trackedPoints = fast.detect(localFrameThresh, None)
 
-            if (findNewWands):
-                # Identify Potential Wand Tips using GoodFeaturesToTrack
-                trackedPoints = cv2.goodFeaturesToTrack(localFrameThresh, 5, .01, 30)
-                if trackedPoints is not None:
-                    findNewWands = False
-            else:
-                # calculate optical flow
-                nextPoints, statusArray, err = cv2.calcOpticalFlowPyrLK(oldFrameThresh, localFrameThresh, trackedPoints, None, **lk_params)
-           
-                # Select good points
-                good_new = nextPoints[statusArray==1]
-                good_old = trackedPoints[statusArray==1]
+                    if trackedPoints is not None:
+                        findNewWands = False
+                    else:
+                        findNewWands = True
+            if False:
+                    # calculate optical flow
+                    nextPoints, statusArray, err = cv2.calcOpticalFlowPyrLK(oldFrameThresh, localFrameThresh, trackedPoints, None, **lk_params)
+                    # Select good points
+                    good_new = nextPoints[statusArray==1]
+                    good_old = trackedPoints[statusArray==1]
 
-                if (len(good_new) > 0):
-                    # draw the tracks
-                    for i,(new,old) in enumerate(zip(good_new,good_old)):
-                        a,b = new.ravel()
-                        c,d = old.ravel()
-           
-                        wandTracks.append([a, b])
-           
-                    # Update which points are tracked
-                    trackedPoints = good_new.copy().reshape(-1,1,2)
-           
-                    wandTracks = CheckForPattern(wandTracks, localFrameThresh)
-           
-                else:
-                    # No Points were tracked, check for a pattern and start searching for wands again
-                    #wandTracks = CheckForPattern(wandTracks, localFrameThresh)
-                    wandTracks = []
-                    findNewWands = True
+                    if (len(good_new) > 0):
+                        # draw the tracks
+                        for i,(new,old) in enumerate(zip(good_new,good_old)):
+                            a,b = new.ravel()
+                            c,d = old.ravel()
             
+                            wandTracks.append([a, b])
+            
+                        # Update which points are tracked
+                        trackedPoints = good_new.copy().reshape(-1,1,2)
+            
+                        wandTracks = CheckForPattern(wandTracks, localFrameThresh)
+            
+                    else:
+                        # No Points were tracked, check for a pattern and start searching for wands again
+                        #wandTracks = CheckForPattern(wandTracks, localFrameThresh)
+                        wandTracks = []
+                        findNewWands = True
+                
             # Store Previous Threshold Frame
             oldFrameThresh = localFrameThresh
-
-            
+        
         else:
             time.sleep(0.001)
 
@@ -327,6 +329,13 @@ outputFrameCount = 0
 
 # Initialize and traing the spell classification algorithm
 InitClassificationAlgo()
+
+
+# Create the thread for processing the data
+ProcessDataThread = Thread(target=ProcessData)
+ProcessDataThread.do_run = True
+ProcessDataThread.daemon = True
+ProcessDataThread.start()
 
 
 # Set OpenCV video capture source
@@ -382,54 +391,18 @@ while True:
         # THRESHOLD
         frame_gray = cv2.cvtColor(frame_no_background, cv2.COLOR_BGR2GRAY)
         ret, frameThresh = cv2.threshold(frame_gray, thresholdValue, 255, cv2.THRESH_BINARY);
+        IsNewFrameThreshold = True
 
         if (IsShowThreshold):
             frameThreshWithCounts = AddIterationsPerSecText(frameThresh.copy(), thresholdCps.countsPerSec())
             cv2.imshow("Threshold", frameThreshWithCounts)
 
 
-        # PROCESS DATA
-        if (IsProcessData):
-            if (findNewWands):
-                # Identify Potential Wand Tips using GoodFeaturesToTrack
-                trackedPoints = cv2.goodFeaturesToTrack(frameThresh, 5, .01, 30)
-                if trackedPoints is not None:
-                    print("Found New Wands")
-                    findNewWands = False
-            else:
-                # calculate optical flow
-                nextPoints, statusArray, err = cv2.calcOpticalFlowPyrLK(oldFrameThresh, frameThresh, trackedPoints, None, **lk_params)
-            
-                # Select good points
-                good_new = nextPoints[statusArray==1]
-                good_old = trackedPoints[statusArray==1]
-
-                if (len(good_new) > 0):
-                    # draw the tracks
-                    for i,(new,old) in enumerate(zip(good_new,good_old)):
-                        a,b = new.ravel()
-                        c,d = old.ravel()
-            
-                        wandTracks.append([a, b])
-            
-                    # Update which points are tracked
-                    trackedPoints = good_new.copy().reshape(-1,1,2)
-                    wandTracks = CheckForPattern(wandTracks, frameThresh)
-            
-                else:
-                    # No Points were tracked, check for a pattern and start searching for wands again
-                    #wandTracks = CheckForPattern(wandTracks, localFrameThresh)
-                    print("No points tracked - reseting wand search.")
-                    wandTracks = []
-                    findNewWands = True
-            
-            # Store Previous Threshold Frame
-            oldFrameThresh = frameThresh
-            
-
         # Check for ESC key, if pressed shut everything down
         if (cv2.waitKey(1) is 27):
             break
 
+ProcessDataThread.do_run = False
+ProcessDataThread.join()
 
 cv2.destroyAllWindows()
