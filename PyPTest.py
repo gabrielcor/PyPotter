@@ -1,5 +1,10 @@
-# TODO: 1-Try to get a smooth output from the wand tracking (maybe use threading to process the data)
-# 
+# TODO:
+# Smaller FOV for the camera helped a lot with the tracking
+# 1-Try to get a smooth output from the wand tracking (maybe use threading to process the data)
+
+# after
+# USE a different source code (rpotter)
+
 
 import sys
 import cv2
@@ -330,11 +335,11 @@ videoCapture = cv2.VideoCapture(videoSource)
 # Default values: history=500, varThreshold=16, detectShadows=False
 bgHistory = 500
 bgThreshold = 500
-bgShadows = False
+bgShadows = True
 fgbg = cv2.createBackgroundSubtractorMOG2(history=bgHistory, varThreshold=bgThreshold, detectShadows=bgShadows)
 
 
-thresholdValue = 225
+thresholdValue = 230
 oldFrameThresh = None
 
 
