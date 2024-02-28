@@ -36,6 +36,7 @@ DesiredFps = 22
 DefaultFps = 22 # Original constants trained for 42 FPS
 MicroSecondsBetweenFrames = (1 / DesiredFps) * 1000000
 
+resizeParameter = 640
 TrainingResolution = 50
 TrainingNumPixels = TrainingResolution * TrainingResolution
 TrainingFolderName = "Training"
@@ -50,9 +51,10 @@ IsDebugFps = True
 IsShowOriginal = False
 IsShowBackgroundRemoved = False
 IsShowThreshold = True
-IsShowOutput = True
-IsProcessData = True
+IsShowOutput = False
+IsProcessData = False
 calculateDistance = False
+IsFindWandsWithFastFeatureDetectorAndShowThemEnabled = False
 
 # Create Windows
 if (IsShowOriginal):
@@ -262,9 +264,10 @@ def ProcessData():
     oldFrameThresh = None
     trackedPoints = None
     t = threading.currentThread()
-    fast = cv2.FastFeatureDetector_create()
+    
     while getattr(t, "do_run", True):
         if (IsNewFrameThreshold):
+            IsNewFrameThreshold = False
             if (IsDebugFps):
                 outputFrameCount = outputFrameCount + 1
 
@@ -273,14 +276,10 @@ def ProcessData():
                 localFrameThresh = frameThresh.copy()
                 if (findNewWands):
                     # Identify Potential Wand Tips using GoodFeaturesToTrack
-                    # trackedPoints = cv2.goodFeaturesToTrack(localFrameThresh, 5, .01, 30)
-                    trackedPoints = fast.detect(localFrameThresh, None)
-
+                    trackedPoints = cv2.goodFeaturesToTrack(localFrameThresh, 5, .01, 30)
                     if trackedPoints is not None:
                         findNewWands = False
-                    else:
-                        findNewWands = True
-            if False:
+                else:
                     # calculate optical flow
                     nextPoints, statusArray, err = cv2.calcOpticalFlowPyrLK(oldFrameThresh, localFrameThresh, trackedPoints, None, **lk_params)
                     # Select good points
@@ -298,7 +297,7 @@ def ProcessData():
                         # Update which points are tracked
                         trackedPoints = good_new.copy().reshape(-1,1,2)
             
-                        wandTracks = CheckForPattern(wandTracks, localFrameThresh)
+                        # wandTracks = CheckForPattern(wandTracks, localFrameThresh)
             
                     else:
                         # No Points were tracked, check for a pattern and start searching for wands again
@@ -320,6 +319,16 @@ def AddIterationsPerSecText(frame, iterations_per_sec):
         (10, 450), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255))
     return frame
 
+def FindWandsWithFastFeatureDetectorAndShowThem():
+        # Show found wands
+        # Initiate FAST object with default values
+        fast = cv2.FastFeatureDetector_create(threshold=1)
+        # find and draw the keypoints
+        kp = fast.detect(frameThresh, None)
+        wand_path_frame = np.zeros_like(frameThresh)
+        # draw only keypoints location,not size and orientation
+        img2 = cv2.drawKeypoints(wand_path_frame, kp, wand_path_frame, color=(0, 255, 0), flags=0)
+        cv2.imshow("keypoints", img2)
 
 
 timeLastPrintedFps = datetime.datetime.now()
@@ -390,12 +399,20 @@ while True:
 
         # THRESHOLD
         frame_gray = cv2.cvtColor(frame_no_background, cv2.COLOR_BGR2GRAY)
-        ret, frameThresh = cv2.threshold(frame_gray, thresholdValue, 255, cv2.THRESH_BINARY);
+        ret, frameThresh = cv2.threshold(frame_gray, thresholdValue, 255, cv2.THRESH_BINARY)
+        # resize the frame to resizeParameter so that it is faster to process
+        # this is because cv2.goodFeaturesToTrack() is slow on large images
+        frameThresh = cv2.resize(frameThresh, (resizeParameter, resizeParameter), interpolation=cv2.INTER_LINEAR)        
         IsNewFrameThreshold = True
 
         if (IsShowThreshold):
             frameThreshWithCounts = AddIterationsPerSecText(frameThresh.copy(), thresholdCps.countsPerSec())
             cv2.imshow("Threshold", frameThreshWithCounts)
+
+        if IsFindWandsWithFastFeatureDetectorAndShowThemEnabled:
+            FindWandsWithFastFeatureDetectorAndShowThem()
+
+
 
 
         # Check for ESC key, if pressed shut everything down
