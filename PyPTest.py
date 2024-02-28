@@ -52,9 +52,10 @@ IsShowOriginal = False
 IsShowBackgroundRemoved = False
 IsShowThreshold = True
 IsShowOutput = False
-IsProcessData = False
+IsProcessData = True
 calculateDistance = False
 IsFindWandsWithFastFeatureDetectorAndShowThemEnabled = False
+IsProcessDataInline = False
 
 # Create Windows
 if (IsShowOriginal):
@@ -80,6 +81,9 @@ noBackgroundCps = CountsPerSec()
 thresholdCps = CountsPerSec()
 outputCps = CountsPerSec()
 
+oldFrameThresh = None
+trackedPoints = None
+
 lk_params = dict( winSize  = (25,25),
                   maxLevel = 7,
                   criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
@@ -90,6 +94,8 @@ frame = None
 IsNewFrameNoBackground = False
 frame_no_background = None
 
+global IsNewFrameThreshold 
+oldFrameThresh = None
 IsNewFrameThreshold = False
 frameThresh = None
 
@@ -309,7 +315,53 @@ def ProcessData():
             oldFrameThresh = localFrameThresh
         
         else:
-            time.sleep(0.001)
+            time.sleep(0.01)
+
+def ProcessDataInline():
+    global frameThresh, IsNewFrameThreshold, findNewWands, wandTracks, outputFrameCount, oldFrameThresh, trackedPoints
+
+    if (IsNewFrameThreshold):
+        IsNewFrameThreshold = False
+        if (IsDebugFps):
+            outputFrameCount = outputFrameCount + 1
+
+        IsNewFrameThreshold = False
+        localFrameThresh = frameThresh.copy()
+
+        if (findNewWands):
+            # Identify Potential Wand Tips using GoodFeaturesToTrack
+            trackedPoints = cv2.goodFeaturesToTrack(localFrameThresh, 5, .01, 30)
+            if trackedPoints is not None:
+                findNewWands = False
+        else:
+            # calculate optical flow
+            nextPoints, statusArray, err = cv2.calcOpticalFlowPyrLK(oldFrameThresh, localFrameThresh, trackedPoints, None, **lk_params)
+            # Select good points
+            good_new = nextPoints[statusArray==1]
+            good_old = trackedPoints[statusArray==1]
+
+            if (len(good_new) > 0):
+                # draw the tracks
+                for i,(new,old) in enumerate(zip(good_new,good_old)):
+                    a,b = new.ravel()
+                    c,d = old.ravel()
+    
+                    wandTracks.append([a, b])
+    
+                # Update which points are tracked
+                trackedPoints = good_new.copy().reshape(-1,1,2)
+    
+                # wandTracks = CheckForPattern(wandTracks, localFrameThresh)
+    
+            else:
+                # No Points were tracked, check for a pattern and start searching for wands again
+                #wandTracks = CheckForPattern(wandTracks, localFrameThresh)
+                wandTracks = []
+                findNewWands = True
+        # Store Previous Threshold Frame
+        oldFrameThresh = localFrameThresh
+
+
 
 def AddIterationsPerSecText(frame, iterations_per_sec):
     """
@@ -340,11 +392,12 @@ outputFrameCount = 0
 InitClassificationAlgo()
 
 
-# Create the thread for processing the data
-ProcessDataThread = Thread(target=ProcessData)
-ProcessDataThread.do_run = True
-ProcessDataThread.daemon = True
-ProcessDataThread.start()
+if IsProcessData:
+    # Create the thread for processing the data
+    ProcessDataThread = Thread(target=ProcessData)
+    ProcessDataThread.do_run = True
+    ProcessDataThread.daemon = True
+    ProcessDataThread.start()
 
 
 # Set OpenCV video capture source
@@ -412,8 +465,8 @@ while True:
         if IsFindWandsWithFastFeatureDetectorAndShowThemEnabled:
             FindWandsWithFastFeatureDetectorAndShowThem()
 
-
-
+        if IsProcessDataInline:
+            ProcessDataInline()
 
         # Check for ESC key, if pressed shut everything down
         if (cv2.waitKey(1) is 27):
