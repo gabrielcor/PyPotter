@@ -465,6 +465,21 @@ while True:
         if IsFindWandsWithFastFeatureDetectorAndShowThemEnabled:
             FindWandsWithFastFeatureDetectorAndShowThem()
 
+
+
+        trackedPoints = cv2.goodFeaturesToTrack(frameThresh, 5, .01, 30)
+        if trackedPoints is not None:
+            wand_path_frame = np.zeros_like(frameThresh)
+            # draw only keypoints location,not size and orientation
+            keypoints = []
+            for point in trackedPoints:
+                x, y = point.ravel()
+                keypoints.append(cv2.KeyPoint(x, y, 10))  # _size is arbitrary, choose based on your needs
+
+            img2 = cv2.drawKeypoints(wand_path_frame, keypoints, wand_path_frame, color=(0, 255, 0), flags=0)
+            cv2.imshow("keypoints", img2)
+
+
         if IsProcessDataInline:
             ProcessDataInline()
 
