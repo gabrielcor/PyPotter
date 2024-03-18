@@ -52,9 +52,9 @@ IsShowOriginal = False
 IsShowBackgroundRemoved = False
 IsShowThreshold = True
 IsShowOutput = False
-IsProcessData = True
+IsProcessData = False
 calculateDistance = False
-IsFindWandsWithFastFeatureDetectorAndShowThemEnabled = False
+IsFindWandsWithFastFeatureDetectorAndShowThemEnabled = True
 IsProcessDataInline = False
 
 # Create Windows
