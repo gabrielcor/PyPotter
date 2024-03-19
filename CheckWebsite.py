@@ -13,16 +13,21 @@ import time
 doSignIn = True
 checkCount = 0
 times2CheckBeforeEmail = 24
+sndToTemp = False
 
-def send_email(checkCount):
+def send_email(checkCount, sndToTemp = False):
     sender_address = 'corcompany42@gmail.com'
     sender_pass = 'vgxr wexz yczk cxwx'
     receiver_address = 'gabrielcor@gmail.com'
-    
+    tmp_receiver_address = 'corcompany42@gmail.com'
+
     # Setup the MIME
     message = MIMEMultipart()
     message['From'] = sender_address
-    message['To'] = receiver_address
+    if sndToTemp:
+        message['To'] = tmp_receiver_address
+    else:
+        message['To'] = receiver_address
 
     if checkCount == 0:
         message['Subject'] = 'ATENCION! HAY LUGARES EN LA VISA'
@@ -38,7 +43,10 @@ def send_email(checkCount):
     session.starttls()  # enable security
     session.login(sender_address, sender_pass)  # login with mail_id and password
     text = message.as_string()
-    session.sendmail(sender_address, receiver_address, text)
+    if sndToTemp:
+        session.sendmail(sender_address, tmp_receiver_address, text)
+    else:
+        session.sendmail(sender_address, receiver_address, text)
     session.quit()
 
 
@@ -106,10 +114,15 @@ def check_website():
         if checkCount >= times2CheckBeforeEmail:
             send_email(checkCount)
             checkCount = 0
+        else:
+            send_email(checkCount,True)
     # Close the browser
     driver.quit()
 
 
+send_email(0)
+send_email(1,True)
+send_email(24)
 
 while True:
     # Place the code to check the website here
