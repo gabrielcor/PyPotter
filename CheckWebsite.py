@@ -120,9 +120,6 @@ def check_website():
     driver.quit()
 
 
-send_email(0)
-send_email(1,True)
-send_email(24)
 
 while True:
     # Place the code to check the website here
