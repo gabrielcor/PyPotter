@@ -6,6 +6,8 @@ from selenium.webdriver.support import expected_conditions as EC
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 import time
 # Set the path to the chromedriver executable
 # chromedriver_path = '/path/to/chromedriver'
@@ -14,8 +16,11 @@ doSignIn = True
 checkCount = 0
 times2CheckBeforeEmail = 24
 sndToTemp = False
+screenshot_path = "screenshot.png"
 
 def send_email(checkCount, sndToTemp = False):
+
+    global screenshot_path
     sender_address = 'corcompany42@gmail.com'
     sender_pass = 'vgxr wexz yczk cxwx'
     receiver_address = 'gabrielcor@gmail.com'
@@ -38,6 +43,14 @@ def send_email(checkCount, sndToTemp = False):
         
     message.attach(MIMEText(mail_content, 'plain'))
     
+
+    part = MIMEBase('application', "octet-stream")
+    with open(screenshot_path, 'rb') as file:
+        part.set_payload(file.read())
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', 'attachment; filename="screenshot.png"')
+    message.attach(part)
+
     # Create SMTP session for sending the mail
     session = smtplib.SMTP('smtp.gmail.com', 587)  # use gmail with port
     session.starttls()  # enable security
@@ -101,6 +114,9 @@ def check_website():
     time.sleep(2)
     # Step 3: Get the HTML of the section
     consulate_appointment_fields_html = consulate_appointment_fields.get_attribute('outerHTML')
+
+    # Take a screenshot
+    driver.save_screenshot(screenshot_path)
 
     # Now you have the HTML of the section in 'consulate_appointment_fields_html'
     # You can print it or parse it as needed
