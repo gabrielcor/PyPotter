@@ -121,6 +121,9 @@ def check_website():
     time.sleep(2)
     # Step 3: Get the HTML of the section
     consulate_appointment_fields_html = consulate_appointment_fields.get_attribute('outerHTML')
+    # A little delay to wait for the html to render on the screen
+    # Suspect of being too fast to get the screenshot
+    time.sleep(2)
 
     # Take a screenshot
     driver.save_screenshot(screenshot_path)
@@ -128,6 +131,7 @@ def check_website():
     # Now you have the HTML of the section in 'consulate_appointment_fields_html'
     # You can print it or parse it as needed
     search_string = "There are no available appointments at the selected location"
+    
     if search_string not in consulate_appointment_fields_html:
         # The string was not found, proceed to send an email
         checkCount = 0
