@@ -9,6 +9,9 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 import time
+from datetime import datetime
+from PIL import Image, ImageDraw, ImageFont
+import time
 # Set the path to the chromedriver executable
 # chromedriver_path = '/path/to/chromedriver'
 
@@ -24,6 +27,30 @@ try:
         checkCount = int(file.read())
 except:
     checkCount = 0
+
+
+def add_timestamp():
+
+    # Open the screenshot
+    img = Image.open(screenshot_path)
+    # Prepare to draw on the image
+    draw = ImageDraw.Draw(img)
+
+    # Define the timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+#    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"  # Adjust path as needed
+#    font = ImageFont.truetype(font_path, 20)
+
+    # Define the text color and position
+    text_color = (255, 255, 255)  # White
+    text_position = (10, 10)  # Top-left corner
+
+    # Draw the timestamp on the image
+    draw.text(text_position, timestamp, fill=text_color)
+
+    # Save the modified image
+    img.save(screenshot_path)
+
 
 def send_email(checkCount, sndToTemp = False):
 
@@ -127,7 +154,7 @@ def check_website():
 
     # Take a screenshot
     driver.save_screenshot(screenshot_path)
-
+    add_timestamp()
     # Now you have the HTML of the section in 'consulate_appointment_fields_html'
     # You can print it or parse it as needed
     search_string = "There are no available appointments at the selected location"
